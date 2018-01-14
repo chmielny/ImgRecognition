@@ -206,6 +206,9 @@ int labeling(const cv::Mat& inpImg, cv::Mat& outLabels, int color) {
 }
 
 
+
+
+
 int main(int argc, char * argv[]) {
 	if (argc == 2 && (cv::imread(argv[1]).data != NULL)) {
 		std::cout << "Start ..." << std::endl;
@@ -224,6 +227,8 @@ int main(int argc, char * argv[]) {
 
 		labeling(imageTr1, imageTr2, 2);			// nazywanie obiektow jednego koloru
 		labeling(imageTr2, imageTr1, 1);			// nazywanie obiektor drugiego koloru
+
+
 		displayImg("Obraz oryginalny", image);
 		displayImg("Obraz przygotowany", imageTr1);
 		imwrite( "./out.bmp", imageTr1 );
