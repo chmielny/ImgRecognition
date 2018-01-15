@@ -2,6 +2,10 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <iostream>
 #include <stack>
+#include <array>
+#include <iterator>
+#include <vector>
+#include <string>
 
 const float lowpass[3][3] = { { 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0 } };
 const float hipass[3][3] = { { -1.0, -1.0, -1.0 }, { -1.0, 9.0, -1.0 }, { -1.0, -1.0, -1.0 } };
@@ -205,12 +209,83 @@ int labeling(const cv::Mat& inpImg, cv::Mat& outLabels, int color) {
     return label;
 }
 
+// funkcja oblicza momenty geometryczne, sprawdza czy sa podobne do
+// szukanych, porownuje polozenia znalezionych elementow i uznaje
+// czy to szukane logo
+void findLogo(cv::Mat& inpImg, const int maxRedLabel, const int maxGreenLabel) {
+	CV_Assert(inpImg.depth() != sizeof(uchar));
+	cv::Mat_<cv::Vec3b> img = inpImg;			// oryginalny
+	int color = 2;
+	std::vector<std::array<double, 7> > redMoments(maxRedLabel + 1);		//m00,L,m10,m01,m20,m02,m11
+	std::vector<std::array<double, 7> > greenMoments(maxGreenLabel + 1); 
+	std::vector<std::array<double, 7> > redIvariants(maxRedLabel + 1);		//S, L, W3, M1, M7, centrum (i,j)
+	std::vector<std::array<int, 2> > potentialLogos;						//wspolzedne i,j trojek czerwonych trojkotow ktore moga byc logiem
 
+    for ( int i = 1; i < (inpImg.rows - 1); ++i)
+		for (int j = 1; j < (inpImg.cols - 1); ++j){
+			if (img(i, j)[color] > 0) {
+				int label = img(i, j)[color];
+				redMoments[label][0]++;					//m00, dodajemy piksel do pola obiektu
+				if (img(i-1, j)[color]!=label || img(i, j-1)[color]!=label || img(i+1, j)[color]!=label || img(i, j+1)[color]!=label) 
+					redMoments[label][1]++;					//L, dodajemy piksel do obwodu obiektu
+				redMoments[label][2] += i;					//m10 
+				redMoments[label][3] += j;					//m01
+				redMoments[label][4] += i*i;				//m20
+				redMoments[label][5] += j*j;				//m02
+				redMoments[label][6] += i*j;				//m11
+			}
+		}
+		// obliczenie niezmiennikow momentowych dla obiektow
+		for(int k = 0; k <= maxRedLabel; ++k) {
+			if (redMoments[k][0] > 0) {
+				double M02, M20, M11;
+				redIvariants[k][0] = redMoments[k][0]; //S
+				redIvariants[k][1] = redMoments[k][1]; //L
+				redIvariants[k][2] = (redMoments[k][1] / (2 * sqrt(M_PI *  redMoments[k][0]))) -1 ; //W3
+				M02 = redMoments[k][5] - (redMoments[k][3] * redMoments[k][3]) / redMoments[k][0];
+				M20 = redMoments[k][4] - (redMoments[k][2] * redMoments[k][2]) / redMoments[k][0];
+				redIvariants[k][3] = (M20 + M02) / (redMoments[k][0] * redMoments[k][0]) ; //M1
+				M11 = redMoments[k][6] - redMoments[k][2] * redMoments[k][3] / redMoments[k][0]; 
+				redIvariants[k][4] = (M20*M02 - M11*M11) / (redMoments[k][0] * redMoments[k][0] * redMoments[k][0] * redMoments[k][0]) ; //M7
+				redIvariants[k][5] = (double)(int)(redMoments[k][2] / redMoments[k][0] );  //i
+				redIvariants[k][6] = (double)(int)(redMoments[k][3] / redMoments[k][0] ); //j
+			}	
+		}
 
+		for(int k = 0; k <= maxRedLabel; ++k) {
+			int isLogo = 0;
+			if (abs(redIvariants[k][3] - 0.236) < 0.003 && abs(redIvariants[k][4] - 0.0078) < 0.0003  && abs(redIvariants[k][2] - 0.15) < 0.03) {
+				isLogo++;
+				for(int z = 0; z <= maxRedLabel; ++z) {
+					if (abs(redIvariants[z][3] - 0.196) < 0.003 && abs(redIvariants[z][4] - 0.0084) < 0.0003  && abs(redIvariants[z][2] - 0.08) < 0.03 &&
+					    redIvariants[z][6] < redIvariants[k][6] && abs(redIvariants[z][6] - redIvariants[k][6]) < 50 &&	 
+						redIvariants[z][5] < redIvariants[k][5] && abs(redIvariants[z][5] - redIvariants[k][5]) < 50)
+							isLogo++;
+					//ELEMENT B PONIZEJ
+					if (abs(redIvariants[z][3] - 0.196) < 0.003 && abs(redIvariants[z][4] - 0.0084) < 0.0003  && abs(redIvariants[z][2] - 0.08) < 0.03 &&
+					    redIvariants[z][6] < redIvariants[k][6] && abs(redIvariants[z][6] - redIvariants[k][6]) < 50 &&	 
+						redIvariants[z][5] < redIvariants[k][5] && abs(redIvariants[z][5] - redIvariants[k][5]) < 50)
+							isLogo++;
+				}
+			}
+		}
+				
+		
+		for(int k=0; k<=maxRedLabel;++k)
+			std::cout << "Moments: " << k << " " << redMoments[k][0]<< " " << redMoments[k][1] << " " 
+				 << redMoments[k][2]<< " " << redMoments[k][3] << " "  << redMoments[k][4]<< " "
+				 << redMoments[k][5]  << std::endl;
+		for(int k=0; k<=maxRedLabel;++k)
+			std::cout << "Ivariats: " << k << " " << redIvariants[k][0]<< " " << redIvariants[k][1] << " " 
+				 << redIvariants[k][2]<< " " << redIvariants[k][3] << " "  << redIvariants[k][4]<< " "
+				 << redIvariants[k][5] << " "  << redIvariants[k][6] << std::endl;
+		return;
+}
 
 
 int main(int argc, char * argv[]) {
 	if (argc == 2 && (cv::imread(argv[1]).data != NULL)) {
+		int maxRedLabel, maxGreenLabel;
 		std::cout << "Start ..." << std::endl;
 		cv::Mat image = cv::imread(argv[1]);
 		cv::Mat imageTr1 = cv::imread(argv[1]);
@@ -225,9 +300,13 @@ int main(int argc, char * argv[]) {
 		dilation(imageTr1, imageTr2, 2);			// imageTr1 - obraz po filtrowaniu, progowaniu, erozji i dylatacji drugiej skladowej
 		dilation(imageTr2, imageTr1, 2);			// imageTr1 - obraz po filtrowaniu, progowaniu, erozji i dwoch dylatacjach drugiej skladowej
 
-		labeling(imageTr1, imageTr2, 2);			// nazywanie obiektow jednego koloru
-		labeling(imageTr2, imageTr1, 1);			// nazywanie obiektor drugiego koloru
+		maxRedLabel = labeling(imageTr1, imageTr2, 2);			// nazywanie obiektow jednego koloru
+		maxGreenLabel = labeling(imageTr2, imageTr1, 1);			// nazywanie obiektor drugiego koloru
 
+		findLogo(imageTr1, maxRedLabel, maxGreenLabel);
+
+		std::cout << "MaxRedLabel: " << maxRedLabel << std::endl;
+		std::cout << "MaxGreenabel: " << maxGreenLabel << std::endl;
 
 		displayImg("Obraz oryginalny", image);
 		displayImg("Obraz przygotowany", imageTr1);
