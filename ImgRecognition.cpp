@@ -221,6 +221,7 @@ void findLogo(cv::Mat& oryginalImg, cv::Mat& inpImg, const int maxRedLabel, cons
 	std::vector<std::array<double, 7> > redMoments(maxRedLabel + 1);		//m00,L,m10,m01,m20,m02,m11
 	std::vector<std::array<double, 7> > greenMoments(maxGreenLabel + 1); 
 	std::vector<std::array<double, 7> > redIvariants(maxRedLabel + 1);		//S, L, W3, M1, M7, centrum (i,j)
+	std::vector<std::array<double, 7> > greenIvariants(maxGreenLabel + 1);		//S, L, W3, M1, M7, centrum (i,j)
 	std::vector<std::array<int, 2> > potentialLogos;						//wspolzedne i,j trojek czerwonych trojkotow ktore moga byc logiem
 
     for ( int i = 1; i < (inpImg.rows - 1); ++i)
@@ -238,21 +239,55 @@ void findLogo(cv::Mat& oryginalImg, cv::Mat& inpImg, const int maxRedLabel, cons
 			}
 		}
 		// obliczenie niezmiennikow momentowych dla obiektow
-		for(int k = 0; k <= maxRedLabel; ++k) {
-			if (redMoments[k][0] > 0) {
-				double M02, M20, M11;
-				redIvariants[k][0] = redMoments[k][0]; //S
-				redIvariants[k][1] = redMoments[k][1]; //L
-				redIvariants[k][2] = (redMoments[k][1] / (2 * sqrt(M_PI *  redMoments[k][0]))) -1 ; //W3
-				M02 = redMoments[k][5] - (redMoments[k][3] * redMoments[k][3]) / redMoments[k][0];
-				M20 = redMoments[k][4] - (redMoments[k][2] * redMoments[k][2]) / redMoments[k][0];
-				redIvariants[k][3] = (M20 + M02) / (redMoments[k][0] * redMoments[k][0]) ; //M1
-				M11 = redMoments[k][6] - redMoments[k][2] * redMoments[k][3] / redMoments[k][0]; 
-				redIvariants[k][4] = (M20*M02 - M11*M11) / (redMoments[k][0] * redMoments[k][0] * redMoments[k][0] * redMoments[k][0]) ; //M7
-				redIvariants[k][5] = (double)(int)(redMoments[k][2] / redMoments[k][0] );  //i
-				redIvariants[k][6] = (double)(int)(redMoments[k][3] / redMoments[k][0] ); //j
-			}	
+	for(int k = 0; k <= maxRedLabel; ++k) {
+		if (redMoments[k][0] > 0) {
+			double M02, M20, M11;
+			redIvariants[k][0] = redMoments[k][0]; //S
+			redIvariants[k][1] = redMoments[k][1]; //L
+			redIvariants[k][2] = (redMoments[k][1] / (2 * sqrt(M_PI *  redMoments[k][0]))) -1 ; //W3
+			M02 = redMoments[k][5] - (redMoments[k][3] * redMoments[k][3]) / redMoments[k][0];
+			M20 = redMoments[k][4] - (redMoments[k][2] * redMoments[k][2]) / redMoments[k][0];
+			redIvariants[k][3] = (M20 + M02) / (redMoments[k][0] * redMoments[k][0]) ; //M1
+			M11 = redMoments[k][6] - redMoments[k][2] * redMoments[k][3] / redMoments[k][0]; 
+			redIvariants[k][4] = (M20*M02 - M11*M11) / (redMoments[k][0] * redMoments[k][0] * redMoments[k][0] * redMoments[k][0]) ; //M7
+			redIvariants[k][5] = (double)(int)(redMoments[k][2] / redMoments[k][0] );  //i
+			redIvariants[k][6] = (double)(int)(redMoments[k][3] / redMoments[k][0] ); //j
+		}	
+	}
+	
+	// warstwa zielona (kolor bialyu na oryginalnym zdjeciu)
+	color = 1;
+    for ( int i = 1; i < (inpImg.rows - 1); ++i)
+		for (int j = 1; j < (inpImg.cols - 1); ++j){
+			if (img(i, j)[color] > 0) {
+				int label = img(i, j)[color];
+				greenMoments[label][0]++;					//m00, dodajemy piksel do pola obiektu
+				if (img(i-1, j)[color]!=label || img(i, j-1)[color]!=label || img(i+1, j)[color]!=label || img(i, j+1)[color]!=label) 
+					greenMoments[label][1]++;					//L, dodajemy piksel do obwodu obiektu
+				greenMoments[label][2] += i;					//m10 
+				greenMoments[label][3] += j;					//m01
+				greenMoments[label][4] += i*i;				//m20
+				greenMoments[label][5] += j*j;				//m02
+				greenMoments[label][6] += i*j;				//m11
+			}
 		}
+		// obliczenie niezmiennikow momentowych dla obiektow
+	for(int k = 0; k <= maxGreenLabel; ++k) {
+		if (greenMoments[k][0] > 0) {
+			double M02, M20, M11;
+			greenIvariants[k][0] = greenMoments[k][0]; //S
+			greenIvariants[k][1] = greenMoments[k][1]; //L
+			greenIvariants[k][2] = (greenMoments[k][1] / (2 * sqrt(M_PI *  greenMoments[k][0]))) -1 ; //W3
+			M02 = greenMoments[k][5] - (greenMoments[k][3] * greenMoments[k][3]) / greenMoments[k][0];
+			M20 = greenMoments[k][4] - (greenMoments[k][2] * greenMoments[k][2]) / greenMoments[k][0];
+			greenIvariants[k][3] = (M20 + M02) / (greenMoments[k][0] * greenMoments[k][0]) ; //M1
+			M11 = greenMoments[k][6] - greenMoments[k][2] * greenMoments[k][3] / greenMoments[k][0]; 
+			greenIvariants[k][4] = (M20*M02 - M11*M11) / (greenMoments[k][0] * greenMoments[k][0] * greenMoments[k][0] * greenMoments[k][0]) ; //M7
+			greenIvariants[k][5] = (double)(int)(greenMoments[k][2] / greenMoments[k][0] );  //i
+			greenIvariants[k][6] = (double)(int)(greenMoments[k][3] / greenMoments[k][0] ); //j
+		}	
+	}
+
 
 		for(int k = 0; k <= maxRedLabel; ++k) {
 			int isLogo = 0;
@@ -266,28 +301,39 @@ void findLogo(cv::Mat& oryginalImg, cv::Mat& inpImg, const int maxRedLabel, cons
 				for(int z = 0; z <= maxRedLabel; ++z) {
 					// to szukaj elementu a
 					if (std::abs(redIvariants[z][3] - 0.196) < 0.003 && std::abs(redIvariants[z][4] - 0.0084) < 0.0003  && std::abs(redIvariants[z][2] - 0.08) < 0.03 &&
-					    redIvariants[z][6] < redIvariants[k][6] && std::abs(redIvariants[z][6] - redIvariants[k][6]) < 50 &&	 
-						redIvariants[z][5] < redIvariants[k][5] && std::abs(redIvariants[z][5] - redIvariants[k][5]) < 50) {
+					    redIvariants[z][6] < redIvariants[k][6] && std::abs(redIvariants[z][6] - redIvariants[k][6]) < 30 &&	 
+						redIvariants[z][5] < redIvariants[k][5] && std::abs(redIvariants[z][5] - redIvariants[k][5]) < 30) {
 							isLogo++;
 							i += redIvariants[z][5]; 
 							j += redIvariants[z][6]; 
 						}
 					// oraz elementu b
 					if (std::abs(redIvariants[z][3] - 0.269) < 0.02 && std::abs(redIvariants[z][4] - 0.0082) < 0.0003  && std::abs(redIvariants[z][2] - 0.21) < 0.05 &&
-					    redIvariants[z][6] < redIvariants[k][6] && std::abs(redIvariants[z][6] - redIvariants[k][6]) < 100 &&	 
-						std::abs(redIvariants[z][6] - redIvariants[k][6]) > 30 &&  std::abs(redIvariants[z][5] - redIvariants[k][5]) < 30) {
+					    redIvariants[z][6] < redIvariants[k][6] && std::abs(redIvariants[z][6] - redIvariants[k][6]) < 60 &&	 
+						std::abs(redIvariants[z][6] - redIvariants[k][6]) > 40 &&  std::abs(redIvariants[z][5] - redIvariants[k][5]) < 25) {
 							isLogo++;
 							i += redIvariants[z][5]; 
 							j += redIvariants[z][6]; 
 						}
 				}
+				//czy biale V pasuje do reszty loga (czerwonych trojkatow)) 
 				if (isLogo == 3) {
-					potentialLogos.push_back( {i / 3, j / 3});
-					orgimg(i/3,j/3)[0]=255;		
-					orgimg(i/3,j/3)[1]=255;		
-					orgimg(i/3,j/3)[2]=255;		
+					for(int z = 0; z <= maxGreenLabel; ++z) {
+						if (std::abs(greenIvariants[z][3] - 0.371) < 0.02 && std::abs(greenIvariants[z][4] - 0.033) < 0.002  && std::abs(greenIvariants[z][2] - 0.83) < 0.05 &&
+							std::abs(greenIvariants[z][6] - (j / 3)) < 10 && std::abs(greenIvariants[z][5] - (i / 3)) < 10) {
+								isLogo++;
+								i += greenIvariants[z][5]; 
+								j += greenIvariants[z][6]; 
+						} 
+					}	
+				}	
+				if (isLogo == 4) {
+					potentialLogos.push_back( {i / 4, j / 4});
+					orgimg(i/4,j/4)[0]=255;		
+					orgimg(i/4,j/4)[1]=255;		
+					orgimg(i/4,j/4)[2]=255;		
 				}
-				std::cout << "Is logo: " << isLogo << std::endl;
+//				std::cout << "Is logo: " << isLogo << std::endl;
 
 			}
 		}
@@ -301,6 +347,14 @@ void findLogo(cv::Mat& oryginalImg, cv::Mat& inpImg, const int maxRedLabel, cons
 			std::cout << "Ivariats: " << k << " " << redIvariants[k][0]<< " " << redIvariants[k][1] << " " 
 				 << redIvariants[k][2]<< " " << redIvariants[k][3] << " "  << redIvariants[k][4]<< " "
 				 << redIvariants[k][5] << " "  << redIvariants[k][6] << std::endl;
+		for(int k=0; k<=maxGreenLabel;++k)
+			std::cout << "Moments: " << k << " " << greenMoments[k][0]<< " " << greenMoments[k][1] << " " 
+				 << greenMoments[k][2]<< " " << greenMoments[k][3] << " "  << greenMoments[k][4]<< " "
+				 << greenMoments[k][5]  << std::endl;
+		for(int k=0; k<=maxGreenLabel;++k)
+			std::cout << "Ivariats: " << k << " " << greenIvariants[k][0]<< " " << greenIvariants[k][1] << " " 
+				 << greenIvariants[k][2]<< " " << greenIvariants[k][3] << " "  << greenIvariants[k][4]<< " "
+				 << greenIvariants[k][5] << " "  << greenIvariants[k][6] << std::endl;
 		return;
 }
 
@@ -333,6 +387,7 @@ int main(int argc, char * argv[]) {
 		displayImg("Obraz oryginalny", image);
 		displayImg("Obraz przygotowany", imageTr1);
 		imwrite( "./out.bmp", imageTr1 );
+		imwrite( "./out2.bmp", image );
 		std::cout << image.isContinuous() ;				//<< image2.isContinuous() << std::endl;
 		cv::waitKey(-1);
 		return 0;
