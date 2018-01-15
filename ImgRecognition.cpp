@@ -6,6 +6,7 @@
 #include <iterator>
 #include <vector>
 #include <string>
+#include <cmath>
 
 const float lowpass[3][3] = { { 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0 } };
 const float hipass[3][3] = { { -1.0, -1.0, -1.0 }, { -1.0, 9.0, -1.0 }, { -1.0, -1.0, -1.0 } };
@@ -107,8 +108,8 @@ cv::Mat& dilation(cv::Mat& inpImg, cv::Mat& outImg, int color) {
 
 // funkcja wyswietlajaca obraz
 void displayImg(std::string windowName, cv::Mat image) {
-	cv::namedWindow(windowName, cv::WINDOW_NORMAL);
-	cv::resizeWindow(windowName, 1024, 768);
+//	cv::namedWindow(windowName, cv::WINDOW_NORMAL);
+//	cv::resizeWindow(windowName, 1024, 768);
 	cv::imshow(windowName,image);
 	return;
 } 
@@ -212,9 +213,10 @@ int labeling(const cv::Mat& inpImg, cv::Mat& outLabels, int color) {
 // funkcja oblicza momenty geometryczne, sprawdza czy sa podobne do
 // szukanych, porownuje polozenia znalezionych elementow i uznaje
 // czy to szukane logo
-void findLogo(cv::Mat& inpImg, const int maxRedLabel, const int maxGreenLabel) {
+void findLogo(cv::Mat& oryginalImg, cv::Mat& inpImg, const int maxRedLabel, const int maxGreenLabel) {
 	CV_Assert(inpImg.depth() != sizeof(uchar));
-	cv::Mat_<cv::Vec3b> img = inpImg;			// oryginalny
+	cv::Mat_<cv::Vec3b> img = inpImg;			
+	cv::Mat_<cv::Vec3b> orgimg = oryginalImg;			// oryginalny
 	int color = 2;
 	std::vector<std::array<double, 7> > redMoments(maxRedLabel + 1);		//m00,L,m10,m01,m20,m02,m11
 	std::vector<std::array<double, 7> > greenMoments(maxGreenLabel + 1); 
@@ -254,19 +256,39 @@ void findLogo(cv::Mat& inpImg, const int maxRedLabel, const int maxGreenLabel) {
 
 		for(int k = 0; k <= maxRedLabel; ++k) {
 			int isLogo = 0;
-			if (abs(redIvariants[k][3] - 0.236) < 0.003 && abs(redIvariants[k][4] - 0.0078) < 0.0003  && abs(redIvariants[k][2] - 0.15) < 0.03) {
+			int i = 0;
+			int j = 0;
+			// jezeli znajdziesz element c
+			if (std::abs(redIvariants[k][3] - 0.236) < 0.003 && std::abs(redIvariants[k][4] - 0.0078) < 0.0003  && std::abs(redIvariants[k][2] - 0.15) < 0.03) {
 				isLogo++;
+				i += redIvariants[k][5]; 
+				j += redIvariants[k][6]; 
 				for(int z = 0; z <= maxRedLabel; ++z) {
-					if (abs(redIvariants[z][3] - 0.196) < 0.003 && abs(redIvariants[z][4] - 0.0084) < 0.0003  && abs(redIvariants[z][2] - 0.08) < 0.03 &&
-					    redIvariants[z][6] < redIvariants[k][6] && abs(redIvariants[z][6] - redIvariants[k][6]) < 50 &&	 
-						redIvariants[z][5] < redIvariants[k][5] && abs(redIvariants[z][5] - redIvariants[k][5]) < 50)
+					// to szukaj elementu a
+					if (std::abs(redIvariants[z][3] - 0.196) < 0.003 && std::abs(redIvariants[z][4] - 0.0084) < 0.0003  && std::abs(redIvariants[z][2] - 0.08) < 0.03 &&
+					    redIvariants[z][6] < redIvariants[k][6] && std::abs(redIvariants[z][6] - redIvariants[k][6]) < 50 &&	 
+						redIvariants[z][5] < redIvariants[k][5] && std::abs(redIvariants[z][5] - redIvariants[k][5]) < 50) {
 							isLogo++;
-					//ELEMENT B PONIZEJ
-					if (abs(redIvariants[z][3] - 0.196) < 0.003 && abs(redIvariants[z][4] - 0.0084) < 0.0003  && abs(redIvariants[z][2] - 0.08) < 0.03 &&
-					    redIvariants[z][6] < redIvariants[k][6] && abs(redIvariants[z][6] - redIvariants[k][6]) < 50 &&	 
-						redIvariants[z][5] < redIvariants[k][5] && abs(redIvariants[z][5] - redIvariants[k][5]) < 50)
+							i += redIvariants[z][5]; 
+							j += redIvariants[z][6]; 
+						}
+					// oraz elementu b
+					if (std::abs(redIvariants[z][3] - 0.269) < 0.02 && std::abs(redIvariants[z][4] - 0.0082) < 0.0003  && std::abs(redIvariants[z][2] - 0.21) < 0.05 &&
+					    redIvariants[z][6] < redIvariants[k][6] && std::abs(redIvariants[z][6] - redIvariants[k][6]) < 100 &&	 
+						std::abs(redIvariants[z][6] - redIvariants[k][6]) > 30 &&  std::abs(redIvariants[z][5] - redIvariants[k][5]) < 30) {
 							isLogo++;
+							i += redIvariants[z][5]; 
+							j += redIvariants[z][6]; 
+						}
 				}
+				if (isLogo == 3) {
+					potentialLogos.push_back( {i / 3, j / 3});
+					orgimg(i/3,j/3)[0]=255;		
+					orgimg(i/3,j/3)[1]=255;		
+					orgimg(i/3,j/3)[2]=255;		
+				}
+				std::cout << "Is logo: " << isLogo << std::endl;
+
 			}
 		}
 				
@@ -303,7 +325,7 @@ int main(int argc, char * argv[]) {
 		maxRedLabel = labeling(imageTr1, imageTr2, 2);			// nazywanie obiektow jednego koloru
 		maxGreenLabel = labeling(imageTr2, imageTr1, 1);			// nazywanie obiektor drugiego koloru
 
-		findLogo(imageTr1, maxRedLabel, maxGreenLabel);
+		findLogo(image, imageTr1, maxRedLabel, maxGreenLabel);
 
 		std::cout << "MaxRedLabel: " << maxRedLabel << std::endl;
 		std::cout << "MaxGreenabel: " << maxGreenLabel << std::endl;
