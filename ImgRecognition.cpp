@@ -108,8 +108,8 @@ cv::Mat& dilation(cv::Mat& inpImg, cv::Mat& outImg, int color) {
 
 // funkcja wyswietlajaca obraz
 void displayImg(std::string windowName, cv::Mat image) {
-//	cv::namedWindow(windowName, cv::WINDOW_NORMAL);
-//	cv::resizeWindow(windowName, 1024, 768);
+	cv::namedWindow(windowName, cv::WINDOW_NORMAL);
+	cv::resizeWindow(windowName, 1024, 768);
 	cv::imshow(windowName,image);
 	return;
 } 
@@ -360,18 +360,18 @@ void markLogos(cv::Mat& inpImg, std::vector<std::array<int, 2> > logoList) {
 	
 	for (auto &i : logoList) {
 		for (int k= -50; k < 50; ++k) {
-			img(i[0] + k, i[1] + 50)[0] = 255;
+			img(i[0] + k, i[1] + 50)[0] = 5;
 			img(i[0] + k, i[1] + 50)[1] = 255;
-			img(i[0] + k, i[1] + 50)[2] = 255;
-			img(i[0] + k, i[1] - 50)[0] = 255;
+			img(i[0] + k, i[1] + 50)[2] = 5;
+			img(i[0] + k, i[1] - 50)[0] = 5;
 			img(i[0] + k, i[1] - 50)[1] = 255;
-			img(i[0] + k, i[1] - 50)[2] = 255;
-			img(i[0] + 50, i[1] + k)[0] = 255;
+			img(i[0] + k, i[1] - 50)[2] = 5;
+			img(i[0] + 50, i[1] + k)[0] = 5;
 			img(i[0] + 50, i[1] + k)[1] = 255;
-			img(i[0] + 50, i[1] + k)[2] = 255;
-			img(i[0] - 50, i[1] + k)[0] = 255;
+			img(i[0] + 50, i[1] + k)[2] = 5;
+			img(i[0] - 50, i[1] + k)[0] = 5;
 			img(i[0] - 50, i[1] + k)[1] = 255;
-			img(i[0] - 50, i[1] + k)[2] = 255;
+			img(i[0] - 50, i[1] + k)[2] = 5;
 		}
 	}
 	
@@ -406,7 +406,7 @@ int main(int argc, char * argv[]) {
 		std::cout << "MaxGreenabel: " << maxGreenLabel << std::endl;
 
 		displayImg("Obraz oryginalny", image);
-		displayImg("Obraz przygotowany", imageTr1);
+//		displayImg("Obraz przygotowany", imageTr1);
 		imwrite( "./out.bmp", imageTr1 );
 		imwrite( "./out2.bmp", image );
 		std::cout << image.isContinuous() ;				//<< image2.isContinuous() << std::endl;
