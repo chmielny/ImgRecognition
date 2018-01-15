@@ -213,10 +213,9 @@ int labeling(const cv::Mat& inpImg, cv::Mat& outLabels, int color) {
 // funkcja oblicza momenty geometryczne, sprawdza czy sa podobne do
 // szukanych, porownuje polozenia znalezionych elementow i uznaje
 // czy to szukane logo
-void findLogo(cv::Mat& oryginalImg, cv::Mat& inpImg, const int maxRedLabel, const int maxGreenLabel) {
+std::vector<std::array<int, 2> > findLogo(cv::Mat& inpImg, const int maxRedLabel, const int maxGreenLabel) {
 	CV_Assert(inpImg.depth() != sizeof(uchar));
 	cv::Mat_<cv::Vec3b> img = inpImg;			
-	cv::Mat_<cv::Vec3b> orgimg = oryginalImg;			// oryginalny
 	int color = 2;
 	std::vector<std::array<double, 7> > redMoments(maxRedLabel + 1);		//m00,L,m10,m01,m20,m02,m11
 	std::vector<std::array<double, 7> > greenMoments(maxGreenLabel + 1); 
@@ -329,9 +328,6 @@ void findLogo(cv::Mat& oryginalImg, cv::Mat& inpImg, const int maxRedLabel, cons
 				}	
 				if (isLogo == 4) {
 					potentialLogos.push_back( {i / 4, j / 4});
-					orgimg(i/4,j/4)[0]=255;		
-					orgimg(i/4,j/4)[1]=255;		
-					orgimg(i/4,j/4)[2]=255;		
 				}
 //				std::cout << "Is logo: " << isLogo << std::endl;
 
@@ -355,13 +351,37 @@ void findLogo(cv::Mat& oryginalImg, cv::Mat& inpImg, const int maxRedLabel, cons
 			std::cout << "Ivariats: " << k << " " << greenIvariants[k][0]<< " " << greenIvariants[k][1] << " " 
 				 << greenIvariants[k][2]<< " " << greenIvariants[k][3] << " "  << greenIvariants[k][4]<< " "
 				 << greenIvariants[k][5] << " "  << greenIvariants[k][6] << std::endl;
-		return;
+		return potentialLogos;
 }
 
+void markLogos(cv::Mat& inpImg, std::vector<std::array<int, 2> > logoList) {
+	CV_Assert(inpImg.depth() != sizeof(uchar));
+	cv::Mat_<cv::Vec3b> img = inpImg;			
+	
+	for (auto &i : logoList) {
+		for (int k= -50; k < 50; ++k) {
+			img(i[0] + k, i[1] + 50)[0] = 255;
+			img(i[0] + k, i[1] + 50)[1] = 255;
+			img(i[0] + k, i[1] + 50)[2] = 255;
+			img(i[0] + k, i[1] - 50)[0] = 255;
+			img(i[0] + k, i[1] - 50)[1] = 255;
+			img(i[0] + k, i[1] - 50)[2] = 255;
+			img(i[0] + 50, i[1] + k)[0] = 255;
+			img(i[0] + 50, i[1] + k)[1] = 255;
+			img(i[0] + 50, i[1] + k)[2] = 255;
+			img(i[0] - 50, i[1] + k)[0] = 255;
+			img(i[0] - 50, i[1] + k)[1] = 255;
+			img(i[0] - 50, i[1] + k)[2] = 255;
+		}
+	}
+	
+}
 
 int main(int argc, char * argv[]) {
 	if (argc == 2 && (cv::imread(argv[1]).data != NULL)) {
 		int maxRedLabel, maxGreenLabel;
+		std::vector<std::array<int, 2> > logoList;
+
 		std::cout << "Start ..." << std::endl;
 		cv::Mat image = cv::imread(argv[1]);
 		cv::Mat imageTr1 = cv::imread(argv[1]);
@@ -379,7 +399,8 @@ int main(int argc, char * argv[]) {
 		maxRedLabel = labeling(imageTr1, imageTr2, 2);			// nazywanie obiektow jednego koloru
 		maxGreenLabel = labeling(imageTr2, imageTr1, 1);			// nazywanie obiektor drugiego koloru
 
-		findLogo(image, imageTr1, maxRedLabel, maxGreenLabel);
+		logoList = findLogo(imageTr1, maxRedLabel, maxGreenLabel);
+		markLogos(image, logoList);
 
 		std::cout << "MaxRedLabel: " << maxRedLabel << std::endl;
 		std::cout << "MaxGreenabel: " << maxGreenLabel << std::endl;
