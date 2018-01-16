@@ -318,7 +318,7 @@ std::vector<std::array<int, 2> > findLogo(cv::Mat& inpImg, const int maxRedLabel
 				//czy biale V pasuje do reszty loga (czerwonych trojkatow)) 
 				if (isLogo == 3) {
 					for(int z = 0; z <= maxGreenLabel; ++z) {
-						if (std::abs(greenIvariants[z][3] - 0.371) < 0.02 && std::abs(greenIvariants[z][4] - 0.033) < 0.002  && std::abs(greenIvariants[z][2] - 0.83) < 0.05 &&
+						if (std::abs(greenIvariants[z][3] - 0.371) < 0.02 && std::abs(greenIvariants[z][4] - 0.033) < 0.003  && std::abs(greenIvariants[z][2] - 0.83) < 0.05 &&
 							std::abs(greenIvariants[z][6] - (j / 3)) < 10 && std::abs(greenIvariants[z][5] - (i / 3)) < 10) {
 								isLogo++;
 								i += greenIvariants[z][5]; 
