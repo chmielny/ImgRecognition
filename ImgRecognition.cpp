@@ -293,7 +293,7 @@ std::vector<std::array<int, 2> > findLogo(cv::Mat& inpImg, const int maxRedLabel
 			int i = 0;
 			int j = 0;
 			// jezeli znajdziesz element c
-			if (std::abs(redIvariants[k][3] - 0.236) < 0.003 && std::abs(redIvariants[k][4] - 0.0078) < 0.0003  && std::abs(redIvariants[k][2] - 0.15) < 0.03) {
+			if (std::abs(redIvariants[k][3] - 0.236) < 0.007 && std::abs(redIvariants[k][4] - 0.0078) < 0.0003  && std::abs(redIvariants[k][2] - 0.15) < 0.03) {
 				isLogo++;
 				i += redIvariants[k][5]; 
 				j += redIvariants[k][6]; 
@@ -318,7 +318,7 @@ std::vector<std::array<int, 2> > findLogo(cv::Mat& inpImg, const int maxRedLabel
 				//czy biale V pasuje do reszty loga (czerwonych trojkatow)) 
 				if (isLogo == 3) {
 					for(int z = 0; z <= maxGreenLabel; ++z) {
-						if (std::abs(greenIvariants[z][3] - 0.371) < 0.02 && std::abs(greenIvariants[z][4] - 0.033) < 0.003  && std::abs(greenIvariants[z][2] - 0.83) < 0.05 &&
+						if (std::abs(greenIvariants[z][3] - 0.371) < 0.03 && std::abs(greenIvariants[z][4] - 0.033) < 0.005  && std::abs(greenIvariants[z][2] - 0.83) < 0.08 &&
 							std::abs(greenIvariants[z][6] - (j / 3)) < 10 && std::abs(greenIvariants[z][5] - (i / 3)) < 10) {
 								isLogo++;
 								i += greenIvariants[z][5]; 
@@ -329,7 +329,7 @@ std::vector<std::array<int, 2> > findLogo(cv::Mat& inpImg, const int maxRedLabel
 				if (isLogo == 4) {
 					potentialLogos.push_back( {i / 4, j / 4});
 				}
-//				std::cout << "Is logo: " << isLogo << std::endl;
+				std::cout << "Is logo: " << isLogo << std::endl;
 
 			}
 		}
